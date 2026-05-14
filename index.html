@@ -47,7 +47,7 @@
         'use strict';
 
         var measurementId = 'G-ZTK8KGEV7Y';
-        var allowedSources = ['tiktok', 'instagram'];
+        var allowedSources = ['tiktok', 'instagram', 'facebook'];
         var storageKey = 'pet_landing_utm';
         var params = new URLSearchParams(window.location.search);
         var referrer = document.referrer.toLowerCase();
@@ -81,7 +81,8 @@
         var utm = collectUtm();
         var source = normalize(params.get('utm_source') || utm.utm_source);
         var inferredSource = referrer.indexOf('tiktok') !== -1 ? 'tiktok' :
-          referrer.indexOf('instagram') !== -1 ? 'instagram' : '';
+          referrer.indexOf('instagram') !== -1 ? 'instagram' :
+          referrer.indexOf('facebook') !== -1 || referrer.indexOf('fb.com') !== -1 ? 'facebook' : '';
         var trafficSource = source || inferredSource || 'direct';
         var isAllowedTraffic = allowedSources.indexOf(trafficSource) !== -1;
 
