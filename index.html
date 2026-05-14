@@ -541,6 +541,7 @@
         setupExtraCareTopics();
         setupPreOfferImage();
         setupTopProductName();
+        setupKiwifyCheckoutLinks();
       });
 
       /* ──────────────────────────────────────────
@@ -976,6 +977,28 @@
           first.textContent = 'PAINEL';
           second.textContent = 'MEU PET MINHA VIDA 🐶🐱';
         }, 900);
+      }
+
+      /* ──────────────────────────────────────────
+         14. LINKS DE CHECKOUT NOS CTAs
+      ────────────────────────────────────────── */
+      function setupKiwifyCheckoutLinks() {
+        var checkoutUrl = 'https://pay.kiwify.com.br/0jY1AGe';
+        var ctaTexts = [
+          'QUERO CUIDAR MELHOR DO MEU PET',
+          'QUERO ACESSAR O PAINEL PET INTELIGENTE',
+          'QUERO GARANTIR MEU ACESSO AGORA'
+        ];
+
+        document.addEventListener('click', function (event) {
+          var button = event.target.closest('button');
+          if (!button) return;
+
+          var text = button.textContent.replace(/\s+/g, ' ').trim();
+          if (ctaTexts.indexOf(text) === -1) return;
+
+          window.location.href = checkoutUrl;
+        });
       }
 
     }());
