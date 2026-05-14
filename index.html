@@ -296,6 +296,37 @@
         max-width: 40rem;
       }
 
+      .pet-offer-old-price {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.18rem;
+        color: rgba(217, 209, 230, 0.66);
+        font-size: 0.84rem;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .pet-offer-old-price span {
+        color: rgba(255, 255, 255, 0.54);
+        font-size: clamp(1rem, 2vw, 1.32rem);
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        text-decoration: line-through;
+        text-decoration-color: rgba(255, 52, 141, 0.74);
+        text-decoration-thickness: 0.12em;
+        text-shadow: 0 0 18px rgba(255, 255, 255, 0.08);
+      }
+
+      .pet-offer-price-label {
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 0.88rem;
+        font-weight: 950;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
       .pet-offer-impact {
         color: rgba(217, 209, 230, 0.82);
         max-width: 42rem;
@@ -373,8 +404,9 @@
 
       .pet-offer-price-glow {
         text-shadow:
-          0 0 20px rgba(255, 52, 141, 0.6),
-          0 0 48px rgba(156, 18, 241, 0.34);
+          0 0 14px rgba(255, 255, 255, 0.28),
+          0 0 26px rgba(255, 52, 141, 0.74),
+          0 0 58px rgba(156, 18, 241, 0.42);
       }
 
       img[src*="hero-thumbnail.png"] + div {
@@ -770,16 +802,17 @@
             return el.textContent.trim() === 'Mais presença.';
           });
           if (oldPrice) {
-            oldPrice.textContent = 'R$97,00';
-            oldPrice.classList.add('line-through');
-            oldPrice.style.opacity = '0.46';
+            oldPrice.innerHTML = 'DE:<span>R$97,00</span>';
+            oldPrice.classList.remove('line-through');
+            oldPrice.classList.add('pet-offer-old-price');
           }
 
           var installment = Array.prototype.find.call(card.querySelectorAll('p'), function (el) {
             return el.textContent.trim() === 'Mais organização.';
           });
           if (installment) {
-            installment.textContent = 'Preço promocional por:';
+            installment.textContent = 'POR APENAS:';
+            installment.classList.add('pet-offer-price-label');
           }
 
           var currency = Array.prototype.find.call(card.querySelectorAll('span'), function (el) {
@@ -790,7 +823,7 @@
           });
           if (currency) currency.textContent = 'R$';
           if (amount) {
-            amount.textContent = '49,90';
+            amount.textContent = '29,90';
             amount.classList.add('pet-offer-price-glow');
           }
 
@@ -799,8 +832,8 @@
           });
           if (afterPrice) {
             afterPrice.insertAdjacentHTML('afterend',
-              '<p class="pet-offer-scarcity">⚠ Esta condição promocional é temporária e o valor aumentará em breve.</p>' +
-              '<p class="pet-offer-impact">Hoje você investe menos em um painel…<br>e entrega mais cuidado, presença e proteção para quem te ama todos os dias.</p>' +
+              '<p class="pet-offer-scarcity">⚠ OFERTA POR TEMPO LIMITADO</p>' +
+              '<p class="pet-offer-impact">“Atenção e cuidado não podem esperar.”</p>' +
               '<div class="pet-offer-timer" aria-live="polite">' +
                 '<p class="pet-offer-timer-label">⏳ Oferta encerrando em:</p>' +
                 '<div class="pet-offer-timer-digits">' +
