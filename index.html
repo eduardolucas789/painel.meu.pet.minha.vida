@@ -82,12 +82,13 @@
         var source = normalize(params.get('utm_source') || utm.utm_source);
         var inferredSource = referrer.indexOf('tiktok') !== -1 ? 'tiktok' :
           referrer.indexOf('instagram') !== -1 ? 'instagram' : '';
-        var trafficSource = source || inferredSource;
+        var trafficSource = source || inferredSource || 'direct';
         var isAllowedTraffic = allowedSources.indexOf(trafficSource) !== -1;
 
         window.PetAnalytics = {
-          active: isAllowedTraffic,
+          active: true,
           source: trafficSource,
+          isTrackedSocialSource: isAllowedTraffic,
           utm: utm,
           withUtm: function (url) {
             var target = new URL(url, window.location.href);
@@ -100,12 +101,13 @@
             return target.toString();
           },
           track: function (eventName, eventParams, callback) {
-            if (!isAllowedTraffic || typeof window.gtag !== 'function') {
+            if (typeof window.gtag !== 'function') {
               if (callback) callback();
               return;
             }
             var payload = Object.assign({
               traffic_source: trafficSource,
+              tracked_social_source: isAllowedTraffic ? trafficSource : '',
               utm_source: trafficSource,
               utm_medium: utm.utm_medium || '',
               utm_campaign: utm.utm_campaign || '',
@@ -120,8 +122,6 @@
             window.gtag('event', eventName, payload);
           }
         };
-
-        if (!isAllowedTraffic) return;
 
         window.dataLayer = window.dataLayer || [];
         window.gtag = function () { window.dataLayer.push(arguments); };
