@@ -42,6 +42,127 @@
       }
     </script>
 
+    <script>
+      (function () {
+        'use strict';
+
+        var measurementId = 'G-ZTK8KGEV7Y';
+        var allowedSources = ['tiktok', 'instagram'];
+        var storageKey = 'pet_landing_utm';
+        var params = new URLSearchParams(window.location.search);
+        var referrer = document.referrer.toLowerCase();
+
+        function normalize(value) {
+          return (value || '').toString().trim().toLowerCase();
+        }
+
+        function readStoredUtm() {
+          try {
+            return JSON.parse(sessionStorage.getItem(storageKey) || '{}');
+          } catch (error) {
+            return {};
+          }
+        }
+
+        function collectUtm() {
+          var stored = readStoredUtm();
+          var data = Object.assign({}, stored);
+          params.forEach(function (value, key) {
+            if (key.indexOf('utm_') === 0) data[key] = value;
+          });
+          if (Object.keys(data).length) {
+            try {
+              sessionStorage.setItem(storageKey, JSON.stringify(data));
+            } catch (error) {}
+          }
+          return data;
+        }
+
+        var utm = collectUtm();
+        var source = normalize(params.get('utm_source') || utm.utm_source);
+        var inferredSource = referrer.indexOf('tiktok') !== -1 ? 'tiktok' :
+          referrer.indexOf('instagram') !== -1 ? 'instagram' : '';
+        var trafficSource = source || inferredSource;
+        var isAllowedTraffic = allowedSources.indexOf(trafficSource) !== -1;
+
+        window.PetAnalytics = {
+          active: isAllowedTraffic,
+          source: trafficSource,
+          utm: utm,
+          withUtm: function (url) {
+            var target = new URL(url, window.location.href);
+            Object.keys(utm).forEach(function (key) {
+              if (!target.searchParams.has(key)) target.searchParams.set(key, utm[key]);
+            });
+            if (trafficSource && !target.searchParams.has('utm_source')) {
+              target.searchParams.set('utm_source', trafficSource);
+            }
+            return target.toString();
+          },
+          track: function (eventName, eventParams, callback) {
+            if (!isAllowedTraffic || typeof window.gtag !== 'function') {
+              if (callback) callback();
+              return;
+            }
+            var payload = Object.assign({
+              traffic_source: trafficSource,
+              utm_source: trafficSource,
+              utm_medium: utm.utm_medium || '',
+              utm_campaign: utm.utm_campaign || '',
+              page_location: window.location.href,
+              page_title: document.title,
+              transport_type: 'beacon'
+            }, eventParams || {});
+            if (callback) {
+              payload.event_callback = callback;
+              payload.event_timeout = 700;
+            }
+            window.gtag('event', eventName, payload);
+          }
+        };
+
+        if (!isAllowedTraffic) return;
+
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { window.dataLayer.push(arguments); };
+        window.gtag('js', new Date());
+        window.gtag('config', measurementId, { send_page_view: false });
+
+        var script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://www.googletagmanager.com/gtag/js?id=' + measurementId;
+        document.head.appendChild(script);
+
+        window.PetAnalytics.track('page_view', { event_category: 'traffic' });
+
+        var scrollMarks = { 25: false, 50: false, 75: false, 90: false };
+        window.addEventListener('scroll', function () {
+          var doc = document.documentElement;
+          var max = doc.scrollHeight - window.innerHeight;
+          if (max <= 0) return;
+          var depth = Math.round((window.scrollY / max) * 100);
+          Object.keys(scrollMarks).forEach(function (mark) {
+            if (!scrollMarks[mark] && depth >= Number(mark)) {
+              scrollMarks[mark] = true;
+              window.PetAnalytics.track('scroll_depth', {
+                event_category: 'behavior',
+                percent_scrolled: Number(mark)
+              });
+            }
+          });
+        }, { passive: true });
+
+        [15, 30, 60, 120].forEach(function (seconds) {
+          window.setTimeout(function () {
+            window.PetAnalytics.track('time_on_page', {
+              event_category: 'engagement',
+              seconds_on_page: seconds
+            });
+          }, seconds * 1000);
+        });
+      }());
+    </script>
+
     <style>
       /* =============================================
          BASE
@@ -1031,7 +1152,39 @@
           var text = button.textContent.replace(/\s+/g, ' ').trim();
           if (ctaTexts.indexOf(text) === -1) return;
 
-          window.location.href = checkoutUrl;
+          var destination = window.PetAnalytics ? window.PetAnalytics.withUtm(checkoutUrl) : checkoutUrl;
+          var hasNavigated = false;
+          var navigate = function () {
+            if (hasNavigated) return;
+            hasNavigated = true;
+            window.location.href = destination;
+          };
+
+          if (!window.PetAnalytics || !window.PetAnalytics.active) {
+            navigate();
+            return;
+          }
+
+          window.PetAnalytics.track('cta_click', {
+            event_category: 'cta',
+            event_label: text,
+            button_text: text,
+            checkout_url: destination
+          });
+          window.PetAnalytics.track('begin_checkout', {
+            event_category: 'conversion',
+            event_label: text,
+            currency: 'BRL',
+            value: 29.90,
+            checkout_url: destination
+          });
+          window.PetAnalytics.track('landing_page_conversion', {
+            event_category: 'conversion',
+            event_label: text,
+            currency: 'BRL',
+            value: 29.90
+          }, navigate);
+          window.setTimeout(navigate, 750);
         });
       }
 
