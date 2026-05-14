@@ -1,0 +1,984 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <title>Painel Pet Inteligente | Cuidado completo para seu pet</title>
+    <meta name="description" content="Monitore saúde, comportamento, alimentação, vacinas, bem-estar e memórias do seu pet em um único painel inteligente." />
+
+    <!-- Tailwind CSS local -->
+    <script src="assets/tailwind.js"></script>
+
+    <!-- Google Fonts Inter local -->
+    <link rel="stylesheet" href="assets/fonts/inter.css">
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+              brand: {
+                dark: '#120E17',
+                card: '#1E1726',
+                purple: '#9C12F1',
+                pink: '#FF348D',
+                text: '#D9D1E6',
+                border: '#423359',
+                green: '#00E56A'
+              }
+            },
+            backgroundImage: {
+              'gradient-blur': 'linear-gradient(180deg, rgba(18,14,23,0) 0%, #120E17 100%)',
+            },
+            screens: {
+              'xs': '400px',
+            }
+          }
+        }
+      }
+    </script>
+
+    <style>
+      /* =============================================
+         BASE
+      ============================================= */
+      html { scroll-behavior: smooth; }
+
+      body {
+        background-color: #120E17;
+        color: white;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      * { -webkit-tap-highlight-color: transparent; }
+
+      /* =============================================
+         SCROLLBAR
+      ============================================= */
+      ::-webkit-scrollbar { width: 5px; }
+      ::-webkit-scrollbar-track { background: #0d0a13; }
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #9C12F1, #FF348D);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover { background: #FF348D; }
+
+      /* =============================================
+         SELECTION
+      ============================================= */
+      ::selection { background: rgba(255, 52, 141, 0.35); color: #fff; }
+
+      /* =============================================
+         ROOT — entrada suave da página
+      ============================================= */
+      #root {
+        min-height: 100vh;
+        position: relative;
+        z-index: 2;
+        animation: pageEntry 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes pageEntry {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
+      /* =============================================
+         NOISE TEXTURE OVERLAY (profundidade sutil)
+      ============================================= */
+      body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0.022;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+        background-size: 180px;
+      }
+
+      /* =============================================
+         BARRA DE PROGRESSO DE SCROLL
+      ============================================= */
+      #scroll-progress {
+        position: fixed;
+        top: 0; left: 0;
+        height: 2px;
+        width: 0%;
+        background: linear-gradient(90deg, #9C12F1 0%, #FF348D 100%);
+        z-index: 9999;
+        box-shadow: 0 0 8px rgba(255, 52, 141, 0.9), 0 0 18px rgba(255, 52, 141, 0.4);
+        pointer-events: none;
+        will-change: width;
+        transition: width 0.06s linear;
+      }
+
+      /* =============================================
+         CURSOR GLOW (desktop)
+      ============================================= */
+      .cursor-glow {
+        position: fixed;
+        width: 440px;
+        height: 440px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(156, 18, 241, 0.07) 0%,
+          rgba(255, 52, 141, 0.04) 45%,
+          transparent 70%
+        );
+        pointer-events: none;
+        z-index: 0;
+        transform: translate(-50%, -50%);
+        will-change: left, top;
+        transition: left 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                    top  0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+
+      /* =============================================
+         CANVAS DE PARTÍCULAS (hero bg)
+      ============================================= */
+      #hero-canvas {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      /* =============================================
+         SECTION REVEAL — scroll suave
+      ============================================= */
+      .section-reveal {
+        opacity: 0;
+        transform: translateY(30px);
+        transition:
+          opacity  0.85s cubic-bezier(0.22, 1, 0.36, 1),
+          transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: opacity, transform;
+      }
+
+      .section-reveal.in-view {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* =============================================
+         BOTÕES — shimmer + ripple
+      ============================================= */
+      button {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+      }
+
+      /* Shimmer sweep */
+      button::before {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%;
+        width: 50%; height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.22) 50%,
+          transparent 100%
+        );
+        animation: btn-shimmer 4.5s 0.8s infinite;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      @keyframes btn-shimmer {
+        0%,  30% { left: -100%; opacity: 1; }
+        50%       { left:  150%; opacity: 1; }
+        51%, 100% { left:  150%; opacity: 0; }
+      }
+
+      /* Ripple ao clicar */
+      @keyframes ripple-anim {
+        from { transform: scale(0); opacity: 0.55; }
+        to   { transform: scale(3.5); opacity: 0; }
+      }
+
+      .btn-ripple {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.28);
+        animation: ripple-anim 0.65s ease-out forwards;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      /* =============================================
+         GRADIENT TEXT SHIMMER nos títulos
+      ============================================= */
+      h1 span[class*="text-brand-pink"],
+      h2 span[class*="text-brand-pink"] {
+        background: linear-gradient(
+          100deg,
+          #FF348D  0%,
+          #FF90BF 38%,
+          #FF348D 55%,
+          #C0005E 80%,
+          #FF348D 100%
+        );
+        background-size: 250% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: text-shimmer 5.5s linear infinite;
+      }
+
+      @keyframes text-shimmer {
+        0%   { background-position: -250% center; }
+        100% { background-position:  250% center; }
+      }
+
+      /* =============================================
+         IMAGENS — transition suave
+      ============================================= */
+      img[src*="authority-photo"],
+      img[src*="creator-card"] {
+        transition:
+          transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+          filter    0.45s ease;
+      }
+
+      img[src*="authority-photo"]:hover,
+      img[src*="creator-card"]:hover {
+        transform: scale(1.03) translateY(-5px);
+        filter: brightness(1.08) contrast(1.03);
+      }
+
+      /* =============================================
+         FOOTER — separador luminoso
+      ============================================= */
+      footer { position: relative; }
+
+      footer::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 8%; right: 8%;
+        height: 1px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          rgba(255, 52, 141, 0.5),
+          rgba(156, 18, 241, 0.4),
+          transparent
+        );
+      }
+
+      /* =============================================
+         OFFER COUNTDOWN — bloco premium de escassez
+      ============================================= */
+      .pet-offer-subtitle {
+        color: rgba(217, 209, 230, 0.86);
+        max-width: 42rem;
+        margin: -0.5rem auto 1.75rem;
+        font-size: 1rem;
+        line-height: 1.7;
+      }
+
+      .pet-offer-scarcity {
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        margin: 1.25rem auto 0.75rem;
+        max-width: 40rem;
+      }
+
+      .pet-offer-impact {
+        color: rgba(217, 209, 230, 0.82);
+        max-width: 42rem;
+        margin: 0 auto 1.75rem;
+        line-height: 1.7;
+      }
+
+      .pet-offer-timer {
+        margin: 1rem auto 2rem;
+        max-width: 34rem;
+        padding: 1rem;
+        border: 1px solid rgba(255, 52, 141, 0.32);
+        border-radius: 1rem;
+        background:
+          radial-gradient(circle at 50% 0%, rgba(255, 52, 141, 0.16), transparent 58%),
+          rgba(18, 14, 23, 0.72);
+        box-shadow:
+          inset 0 0 18px rgba(156, 18, 241, 0.12),
+          0 0 34px rgba(255, 52, 141, 0.12);
+        backdrop-filter: blur(12px);
+      }
+
+      .pet-offer-timer-label {
+        color: rgba(217, 209, 230, 0.78);
+        font-size: 0.78rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        margin-bottom: 0.8rem;
+      }
+
+      .pet-offer-timer-digits {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        color: #fff;
+        font-size: clamp(2rem, 6vw, 4.5rem);
+        font-weight: 950;
+        line-height: 1;
+        text-shadow: 0 0 24px rgba(255, 52, 141, 0.34);
+      }
+
+      .pet-offer-time-box {
+        min-width: 2.35em;
+        padding: 0.25em 0.18em;
+        border-radius: 0.75rem;
+        background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.015));
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+      }
+
+      .pet-offer-separator {
+        color: #FF348D;
+        transform: translateY(-0.04em);
+      }
+
+      .pet-offer-microcopy {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.7rem 1rem;
+        max-width: 40rem;
+        margin: -0.4rem auto 2rem;
+        color: rgba(217, 209, 230, 0.9);
+        font-weight: 700;
+        text-align: left;
+      }
+
+      .pet-offer-final {
+        color: rgba(255, 255, 255, 0.88);
+        line-height: 1.7;
+        margin-top: 1.75rem;
+        font-weight: 700;
+      }
+
+      .pet-offer-price-glow {
+        text-shadow:
+          0 0 20px rgba(255, 52, 141, 0.6),
+          0 0 48px rgba(156, 18, 241, 0.34);
+      }
+
+      img[src*="hero-thumbnail.png"] + div {
+        display: none;
+      }
+
+      span[class*="tracking-tighter"][class*="bg-clip-text"] {
+        display: inline-block;
+        padding-right: 0.08em;
+      }
+
+      .pet-top-brand-stack {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem !important;
+      }
+
+      .pet-top-brand-main {
+        text-align: center;
+        padding-right: 0;
+      }
+
+      section:has(img[src*="authority-photo"]) h2,
+      section:has(img[src*="authority-photo"]) img,
+      section:has(img[src*="authority-photo"]) p {
+        display: none;
+      }
+
+      .pet-family-feature-image {
+        display: block;
+        width: min(92vw, 58rem);
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        object-position: center;
+        margin: 2.25rem auto 0;
+        border-radius: 1rem;
+        border: 1px solid rgba(66, 51, 89, 0.9);
+        box-shadow:
+          0 24px 70px rgba(0, 0, 0, 0.38),
+          0 0 42px rgba(156, 18, 241, 0.18);
+      }
+
+      .pet-extra-care-topics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        margin: -1rem auto 2rem;
+        max-width: 64rem;
+        padding: 0 1rem;
+      }
+
+      .pet-extra-care-topic {
+        border: 1px solid rgba(66, 51, 89, 0.9);
+        border-radius: 0.875rem;
+        background:
+          linear-gradient(135deg, rgba(255, 52, 141, 0.08), rgba(156, 18, 241, 0.045)),
+          rgba(30, 23, 38, 0.72);
+        padding: 1.35rem;
+        color: #D9D1E6;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+      }
+
+      .pet-extra-care-topic strong {
+        display: block;
+        color: #fff;
+        font-size: 1.05rem;
+        margin-bottom: 0.55rem;
+      }
+
+      .pet-extra-care-topic span {
+        display: block;
+        font-size: 0.94rem;
+        line-height: 1.65;
+        opacity: 0.82;
+      }
+
+      @media (max-width: 640px) {
+        .pet-offer-microcopy { grid-template-columns: 1fr; }
+        .pet-offer-timer { padding: 0.85rem; }
+        .pet-family-feature-image {
+          width: 100%;
+          margin-top: 1.5rem;
+          border-radius: 0.85rem;
+        }
+        .pet-extra-care-topics {
+          grid-template-columns: 1fr;
+          margin-top: -0.5rem;
+          padding: 0;
+        }
+      }
+
+      .pet-testimonial-shot {
+        object-fit: cover;
+        object-position: center;
+        opacity: 1 !important;
+        filter: none;
+      }
+
+      .pet-pre-offer-image {
+        display: block;
+        width: min(92vw, 42rem);
+        max-height: 44rem;
+        object-fit: cover;
+        object-position: center;
+        margin: 0 auto 2rem;
+        border-radius: 1.25rem;
+        border: 1px solid rgba(66, 51, 89, 0.9);
+        box-shadow:
+          0 28px 80px rgba(0, 0, 0, 0.42),
+          0 0 50px rgba(255, 52, 141, 0.18),
+          0 0 90px rgba(156, 18, 241, 0.1);
+      }
+
+      .pet-offer-section-tight {
+        padding-top: 1rem !important;
+      }
+
+      @media (max-width: 640px) {
+        .pet-offer-section-tight {
+          padding-top: 0.5rem !important;
+        }
+        .pet-pre-offer-image {
+          width: 100%;
+          max-height: none;
+          margin-bottom: 1.5rem;
+          border-radius: 1rem;
+        }
+      }
+
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="assets/app.js"></script>
+
+    <!-- ═══════════════════════════════════════════
+         DESIGN ENHANCEMENTS
+    ═══════════════════════════════════════════ -->
+    <script>
+    (function () {
+      'use strict';
+
+      // Aguarda o React montar
+      function ready(fn) {
+        if (document.readyState !== 'loading') {
+          setTimeout(fn, 250);
+        } else {
+          document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(fn, 250);
+          });
+        }
+      }
+
+      ready(function () {
+        setupScrollProgress();
+        setupCursorGlow();
+        setupParticleCanvas();
+        setupSectionReveal();
+        setupButtonRipple();
+        setupCardTilt();
+        setupPetOfferBlock();
+        setupPetFamilyImage();
+        setupPetTestimonialImages();
+        setupExtraCareTopics();
+        setupPreOfferImage();
+        setupTopProductName();
+      });
+
+      /* ──────────────────────────────────────────
+         1. BARRA DE PROGRESSO DE SCROLL
+      ────────────────────────────────────────── */
+      function setupScrollProgress() {
+        var bar = document.createElement('div');
+        bar.id = 'scroll-progress';
+        document.body.insertBefore(bar, document.body.firstChild);
+
+        function update() {
+          var st = window.scrollY;
+          var dh = document.documentElement.scrollHeight - window.innerHeight;
+          bar.style.width = (dh > 0 ? (st / dh) * 100 : 0).toFixed(2) + '%';
+        }
+        window.addEventListener('scroll', update, { passive: true });
+        update();
+      }
+
+      /* ──────────────────────────────────────────
+         2. CURSOR GLOW (apenas desktop)
+      ────────────────────────────────────────── */
+      function setupCursorGlow() {
+        if (!window.matchMedia('(pointer: fine)').matches) return;
+
+        var glow = document.createElement('div');
+        glow.className = 'cursor-glow';
+        document.body.appendChild(glow);
+
+        document.addEventListener('mousemove', function (e) {
+          glow.style.left = e.clientX + 'px';
+          glow.style.top  = e.clientY + 'px';
+        }, { passive: true });
+      }
+
+      /* ──────────────────────────────────────────
+         3. CANVAS DE PARTÍCULAS (fundo do hero)
+      ────────────────────────────────────────── */
+      function setupParticleCanvas() {
+        var canvas = document.createElement('canvas');
+        canvas.id = 'hero-canvas';
+        var root = document.getElementById('root');
+        document.body.insertBefore(canvas, root);
+
+        var ctx = canvas.getContext('2d');
+        var W, H, pts = [];
+
+        function resize() {
+          W = canvas.width  = window.innerWidth;
+          H = canvas.height = window.innerHeight;
+        }
+
+        function populate() {
+          pts = [];
+          var n = Math.min(60, Math.floor(W / 24));
+          for (var i = 0; i < n; i++) {
+            pts.push({
+              x:  Math.random() * W,
+              y:  Math.random() * H,
+              r:  Math.random() * 1.5 + 0.3,
+              dx: (Math.random() - 0.5) * 0.28,
+              dy: (Math.random() - 0.5) * 0.28,
+              a:  Math.random() * 0.24 + 0.04,
+              c:  Math.random() > 0.55 ? '156,18,241' : '255,52,141'
+            });
+          }
+        }
+
+        resize(); populate();
+        window.addEventListener('resize', function () { resize(); populate(); }, { passive: true });
+
+        var scrollRatio = 0;
+        window.addEventListener('scroll', function () {
+          scrollRatio = Math.min(1, window.scrollY / (window.innerHeight * 0.85));
+          canvas.style.opacity = String(Math.max(0, 1 - scrollRatio));
+        }, { passive: true });
+
+        (function draw() {
+          requestAnimationFrame(draw);
+          if (scrollRatio >= 1) { ctx.clearRect(0, 0, W, H); return; }
+
+          ctx.clearRect(0, 0, W, H);
+          for (var i = 0; i < pts.length; i++) {
+            var p = pts[i];
+            p.x += p.dx;
+            p.y += p.dy;
+            if (p.x < 0)   p.x = W;
+            else if (p.x > W) p.x = 0;
+            if (p.y < 0)   p.y = H;
+            else if (p.y > H) p.y = 0;
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, 6.2832);
+            ctx.fillStyle = 'rgba(' + p.c + ',' + p.a + ')';
+            ctx.fill();
+          }
+
+          // Conexões entre partículas próximas
+          for (var a = 0; a < pts.length; a++) {
+            for (var b = a + 1; b < pts.length; b++) {
+              var dx = pts[a].x - pts[b].x;
+              var dy = pts[a].y - pts[b].y;
+              var dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < 110) {
+                ctx.beginPath();
+                ctx.moveTo(pts[a].x, pts[a].y);
+                ctx.lineTo(pts[b].x, pts[b].y);
+                ctx.strokeStyle = 'rgba(156,18,241,' + (0.06 * (1 - dist / 110)) + ')';
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+              }
+            }
+          }
+        }());
+      }
+
+      /* ──────────────────────────────────────────
+         4. SECTION REVEAL AO ROLAR
+      ────────────────────────────────────────── */
+      function setupSectionReveal() {
+        var sections = document.querySelectorAll('section');
+        if (!sections.length) return;
+
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('in-view');
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.06, rootMargin: '0px 0px -20px 0px' });
+
+        sections.forEach(function (sec, idx) {
+          if (idx === 0) return; // hero já visível
+          sec.classList.add('section-reveal');
+          observer.observe(sec);
+        });
+      }
+
+      /* ──────────────────────────────────────────
+         5. EFEITO RIPPLE NOS BOTÕES
+      ────────────────────────────────────────── */
+      function setupButtonRipple() {
+        document.addEventListener('click', function (e) {
+          var btn = e.target.closest('button');
+          if (!btn) return;
+
+          var rect = btn.getBoundingClientRect();
+          var size = Math.max(rect.width, rect.height);
+          var ripple = document.createElement('span');
+          ripple.className = 'btn-ripple';
+          ripple.style.cssText =
+            'width:'  + size + 'px;' +
+            'height:' + size + 'px;' +
+            'left:'   + (e.clientX - rect.left - size / 2) + 'px;' +
+            'top:'    + (e.clientY - rect.top  - size / 2) + 'px;';
+
+          btn.appendChild(ripple);
+          setTimeout(function () { ripple.parentNode && ripple.remove(); }, 700);
+        });
+      }
+
+      /* ──────────────────────────────────────────
+         7. TILT 3D NOS CARDS (hover suave)
+      ────────────────────────────────────────── */
+      function setupCardTilt() {
+        if (!window.matchMedia('(pointer: fine)').matches) return;
+
+        // Aguarda mais um pouco para os cards renderizarem
+        setTimeout(function () {
+          var cards = document.querySelectorAll(
+            '[class*="rounded-"][class*="border"][class*="bg-brand-card"],' +
+            '[class*="rounded-"][class*="border"][class*="bg-[#1E1726"]'
+          );
+
+          cards.forEach(function (card) {
+            card.style.transition = 'transform 0.25s ease, box-shadow 0.25s ease';
+            card.style.willChange = 'transform';
+
+            card.addEventListener('mousemove', function (e) {
+              var rect = card.getBoundingClientRect();
+              var cx   = rect.left + rect.width  / 2;
+              var cy   = rect.top  + rect.height / 2;
+              var rx   = ((e.clientY - cy) / (rect.height / 2)) * 4;
+              var ry   = ((e.clientX - cx) / (rect.width  / 2)) * -4;
+              card.style.transform =
+                'perspective(800px) rotateX(' + rx + 'deg) rotateY(' + ry + 'deg) scale(1.012)';
+              card.style.boxShadow =
+                '0 20px 40px rgba(0,0,0,0.35), 0 0 20px rgba(156,18,241,0.1)';
+            });
+
+            card.addEventListener('mouseleave', function () {
+              card.style.transform = 'perspective(800px) rotateX(0) rotateY(0) scale(1)';
+              card.style.boxShadow = '';
+            });
+          });
+        }, 800);
+      }
+
+      /* ──────────────────────────────────────────
+         8. BLOCO DE OFERTA PET + TIMER CONTÍNUO
+      ────────────────────────────────────────── */
+      function setupPetOfferBlock() {
+        setTimeout(function () {
+          var badge = Array.prototype.find.call(document.querySelectorAll('div'), function (el) {
+            return el.textContent.trim() === 'Acesso ao Painel Pet Inteligente';
+          });
+          if (!badge) return;
+
+          var card = badge.closest('.bg-brand-card');
+          if (!card || card.dataset.petOfferReady === 'true') return;
+          card.dataset.petOfferReady = 'true';
+
+          badge.textContent = 'Oferta Especial de Lançamento 🐾';
+          card.style.boxShadow = '0 0 60px rgba(255,52,141,0.24), 0 0 110px rgba(156,18,241,0.12)';
+
+          var heading = card.querySelector('h2');
+          if (heading) {
+            heading.innerHTML = 'Oferta Especial de <br class="hidden md:block"> <span class="text-brand-pink">Lançamento 🐾</span>';
+            heading.insertAdjacentHTML('afterend',
+              '<p class="pet-offer-subtitle">Porque todo pet merece um cuidado completo, inteligente e cheio de amor.</p>'
+            );
+          }
+
+          var oldPrice = Array.prototype.find.call(card.querySelectorAll('p'), function (el) {
+            return el.textContent.trim() === 'Mais presença.';
+          });
+          if (oldPrice) {
+            oldPrice.textContent = 'R$97,00';
+            oldPrice.classList.add('line-through');
+            oldPrice.style.opacity = '0.46';
+          }
+
+          var installment = Array.prototype.find.call(card.querySelectorAll('p'), function (el) {
+            return el.textContent.trim() === 'Mais organização.';
+          });
+          if (installment) {
+            installment.textContent = 'Preço promocional por:';
+          }
+
+          var currency = Array.prototype.find.call(card.querySelectorAll('span'), function (el) {
+            return el.textContent.trim() === 'PET';
+          });
+          var amount = Array.prototype.find.call(card.querySelectorAll('span'), function (el) {
+            return el.textContent.trim() === '360°';
+          });
+          if (currency) currency.textContent = 'R$';
+          if (amount) {
+            amount.textContent = '49,90';
+            amount.classList.add('pet-offer-price-glow');
+          }
+
+          var afterPrice = Array.prototype.find.call(card.querySelectorAll('p'), function (el) {
+            return el.textContent.trim() === 'Mais saúde. Mais amor.';
+          });
+          if (afterPrice) {
+            afterPrice.insertAdjacentHTML('afterend',
+              '<p class="pet-offer-scarcity">⚠ Esta condição promocional é temporária e o valor aumentará em breve.</p>' +
+              '<p class="pet-offer-impact">Hoje você investe menos em um painel…<br>e entrega mais cuidado, presença e proteção para quem te ama todos os dias.</p>' +
+              '<div class="pet-offer-timer" aria-live="polite">' +
+                '<p class="pet-offer-timer-label">⏳ Oferta encerrando em:</p>' +
+                '<div class="pet-offer-timer-digits">' +
+                  '<span class="pet-offer-time-box" data-offer-hours>00</span>' +
+                  '<span class="pet-offer-separator">:</span>' +
+                  '<span class="pet-offer-time-box" data-offer-minutes>00</span>' +
+                  '<span class="pet-offer-separator">:</span>' +
+                  '<span class="pet-offer-time-box" data-offer-seconds>00</span>' +
+                '</div>' +
+              '</div>'
+            );
+          }
+
+          var button = Array.prototype.find.call(card.querySelectorAll('button'), function (el) {
+            return el.textContent.trim() === 'QUERO ACESSAR O PAINEL PET INTELIGENTE';
+          });
+          if (button) {
+            button.textContent = 'QUERO GARANTIR MEU ACESSO AGORA';
+            button.style.boxShadow = '0 0 28px rgba(255,52,141,0.52), 0 0 58px rgba(156,18,241,0.24)';
+            button.insertAdjacentHTML('afterend',
+              '<div class="pet-offer-microcopy">' +
+                '<span>✔ Acesso imediato</span>' +
+                '<span>✔ Acesso vitalício</span>' +
+                '<span>✔ Mobile e computador</span>' +
+                '<span>✔ Organização completa do seu pet</span>' +
+              '</div>' +
+              '<p class="pet-offer-final">Seu pet talvez nunca consiga agradecer com palavras…<br>mas vai sentir cada detalhe do seu cuidado. 🐾❤️</p>'
+            );
+          }
+
+          var duration = (23 * 60 * 60) + (59 * 60) + 59;
+          var remaining = duration;
+          var h = card.querySelector('[data-offer-hours]');
+          var m = card.querySelector('[data-offer-minutes]');
+          var s = card.querySelector('[data-offer-seconds]');
+
+          function pad(value) {
+            return String(value).padStart(2, '0');
+          }
+
+          function tick() {
+            if (remaining <= 0) remaining = duration;
+            var hours = Math.floor(remaining / 3600);
+            var minutes = Math.floor((remaining % 3600) / 60);
+            var seconds = remaining % 60;
+            if (h) h.textContent = pad(hours);
+            if (m) m.textContent = pad(minutes);
+            if (s) s.textContent = pad(seconds);
+            remaining -= 1;
+          }
+
+          tick();
+          setInterval(tick, 1000);
+        }, 900);
+      }
+
+      /* ──────────────────────────────────────────
+         9. IMAGEM DO BLOCO FAMÍLIA PET
+      ────────────────────────────────────────── */
+      function setupPetFamilyImage() {
+        setTimeout(function () {
+          var subtitle = Array.prototype.find.call(document.querySelectorAll('p'), function (el) {
+            return el.textContent.trim() === 'Seu pet sente cada detalhe do seu cuidado';
+          });
+          if (!subtitle) return;
+
+          var section = subtitle.closest('section');
+          if (!section || section.querySelector('.pet-family-feature-image')) return;
+
+          var image = document.createElement('img');
+          image.className = 'pet-family-feature-image';
+          image.src = 'assets/imgs/family-pet-block.png';
+          image.alt = 'Família reunida com cachorro e gato';
+          image.loading = 'lazy';
+
+          subtitle.parentElement.insertAdjacentElement('afterend', image);
+        }, 900);
+      }
+
+      /* ──────────────────────────────────────────
+         10. IMAGENS DOS DEPOIMENTOS
+      ────────────────────────────────────────── */
+      function setupPetTestimonialImages() {
+        setTimeout(function () {
+          var sources = [
+            'assets/imgs/testimonial-pet-1.png',
+            'assets/imgs/testimonial-pet-2.png',
+            'assets/imgs/testimonial-pet-3.png',
+            'assets/imgs/testimonial-pet-4.png'
+          ];
+
+          var images = document.querySelectorAll('.animate-marquee img[src*="creator-card"]');
+          images.forEach(function (img, index) {
+            img.src = sources[index % sources.length];
+            img.classList.add('pet-testimonial-shot');
+            img.alt = 'Registro do Painel Pet Inteligente';
+
+            var videoOverlay = img.nextElementSibling;
+            if (videoOverlay) {
+              videoOverlay.style.display = 'none';
+            }
+          });
+        }, 900);
+      }
+
+      /* ──────────────────────────────────────────
+         11. TÓPICOS EXTRAS DO BLOCO DE CUIDADO
+      ────────────────────────────────────────── */
+      function setupExtraCareTopics() {
+        setTimeout(function () {
+          var heading = Array.prototype.find.call(document.querySelectorAll('h2'), function (el) {
+            return el.textContent.replace(/\s+/g, ' ').trim() === 'Mais do que organização. Uma nova forma de cuidar';
+          });
+          if (!heading || heading.parentElement.querySelector('.pet-extra-care-topics')) return;
+
+          heading.insertAdjacentHTML('afterend',
+            '<div class="pet-extra-care-topics">' +
+              '<div class="pet-extra-care-topic">' +
+                '<strong>🚨 Lembretes Gerais</strong>' +
+                '<span>Agende qualquer compromisso importante para nunca mais esquecer consultas, vacinas, medicamentos, alimentação, banho, tosa ou qualquer cuidado do seu pet.</span>' +
+              '</div>' +
+              '<div class="pet-extra-care-topic">' +
+                '<strong>📈 Evolução &amp; Gráficos</strong>' +
+                '<span>Acompanhe gráficos inteligentes e visualize como seu pet realmente está através da evolução diária, semanal e mensal.</span>' +
+              '</div>' +
+            '</div>'
+          );
+        }, 900);
+      }
+
+      /* ──────────────────────────────────────────
+         12. IMAGEM ANTES DA OFERTA
+      ────────────────────────────────────────── */
+      function setupPreOfferImage() {
+        setTimeout(function () {
+          var badge = Array.prototype.find.call(document.querySelectorAll('div'), function (el) {
+            var text = el.textContent.trim();
+            return text === 'Oferta Especial de Lançamento 🐾' ||
+                   text === 'Acesso ao Painel Pet Inteligente';
+          });
+          if (!badge) return;
+
+          var card = badge.closest('.bg-brand-card');
+          var section = card && card.closest('section');
+          var wrapper = card && card.parentElement;
+          if (!section || !wrapper || section.querySelector('.pet-pre-offer-image')) return;
+          section.classList.add('pet-offer-section-tight');
+
+          var image = document.createElement('img');
+          image.className = 'pet-pre-offer-image';
+          image.src = 'assets/imgs/pre-offer-pet-emotional.png';
+          image.alt = 'O tempo passa. Eles contam com você.';
+          image.loading = 'lazy';
+
+          wrapper.insertBefore(image, card);
+        }, 1100);
+      }
+
+      /* ──────────────────────────────────────────
+         13. NOME DO PRODUTO NO TOPO
+      ────────────────────────────────────────── */
+      function setupTopProductName() {
+        setTimeout(function () {
+          var first = Array.prototype.find.call(document.querySelectorAll('span'), function (el) {
+            return el.textContent.trim() === 'PAINEL PET';
+          });
+          if (!first) return;
+
+          var second = first.nextElementSibling;
+          if (!second || second.textContent.trim() !== 'INTELIGENTE') return;
+
+          first.parentElement.classList.add('pet-top-brand-stack');
+          first.classList.add('pet-top-brand-main');
+          first.textContent = 'PAINEL';
+          second.textContent = 'MEU PET MINHA VIDA 🐶🐱';
+        }, 900);
+      }
+
+    }());
+    </script>
+  </body>
+</html>
